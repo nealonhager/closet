@@ -22,13 +22,16 @@ services:
     # environment:
     #   - GOOGLE_API_KEY=your_api_key_here
 
-  # Optional: Add a reverse proxy with nginx for production
-  # nginx:
-  #   image: nginx:alpine
-  #   ports:
-  #     - "80:80"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf
-  #   depends_on:
-  #     - closet-api
-  #   restart: unless-stopped
+  closet-frontend:
+    build: ./frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - closet-api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
