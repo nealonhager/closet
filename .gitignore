@@ -2,3 +2,5 @@
 .venv/
 .vscode/
 images/
+**/node_modules/
+**/__pycache__/

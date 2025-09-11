@@ -1,0 +1,13 @@
+# Core dependencies
+Flask==3.0.0
+Pillow==11.3.0
+click==8.2.1
+
+# AI/ML dependencies
+google-genai==1.36.0
+
+# Development dependencies
+icecream==2.1.7
+
+# Additional dependencies for production
+gunicorn==21.2.0
