@@ -119,6 +119,7 @@ def process_image() -> dict:
                     "message": f"Successfully processed {article}",
                     "output_file": result_path.name,
                     "download_url": f"/download/{result_path.name}",
+                    "image_url": f"/images/{result_path.name}",
                 }
             )
         else:
@@ -156,6 +157,24 @@ def download_file(filename: str):
         return jsonify({"error": "File not found"}), 404
 
 
+@app.route("/images/<filename>", methods=["GET"])
+def serve_image(filename: str):
+    """
+    Serve processed images for display in the frontend.
+
+    Args:
+        filename: Name of the image file to serve
+
+    Returns:
+        The requested image file or 404 if not found
+    """
+    file_path = OUTPUT_FOLDER / filename
+    if file_path.exists():
+        return send_file(file_path, mimetype="image/png")
+    else:
+        return jsonify({"error": "File not found"}), 404
+
+
 @app.route("/list-processed", methods=["GET"])
 def list_processed_files() -> dict:
     """
@@ -172,6 +191,7 @@ def list_processed_files() -> dict:
             {
                 "filename": file_path.name,
                 "download_url": f"/download/{file_path.name}",
+                "image_url": f"/images/{file_path.name}",
                 "size": file_path.stat().st_size,
                 "created": file_path.stat().st_ctime,
             }

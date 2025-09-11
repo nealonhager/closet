@@ -3,6 +3,7 @@ const API_BASE_URL = '/api'
 export interface ProcessedFile {
   filename: string
   download_url: string
+  image_url: string
   size: number
   created: number
 }

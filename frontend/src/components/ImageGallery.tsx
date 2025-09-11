@@ -29,7 +29,7 @@ export function ImageGallery({ files }: ImageGalleryProps) {
 
   const handleDownload = async (file: ProcessedFile) => {
     try {
-      const response = await fetch(file.download_url)
+      const response = await fetch(`/api${file.download_url}`)
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -63,7 +63,7 @@ export function ImageGallery({ files }: ImageGalleryProps) {
           <div key={file.filename} className="card">
             <div className="aspect-w-16 aspect-h-9 bg-gray-200">
               <img
-                src={file.download_url}
+                src={`/api${file.image_url}`}
                 alt={file.filename}
                 className="w-full h-48 object-cover cursor-pointer hover:opacity-75 transition-opacity"
                 onClick={() => setSelectedImage(file)}
@@ -120,7 +120,7 @@ export function ImageGallery({ files }: ImageGalleryProps) {
                   </button>
                 </div>
                 <img
-                  src={selectedImage.download_url}
+                  src={`/api${selectedImage.image_url}`}
                   alt={selectedImage.filename}
                   className="max-w-full max-h-96 object-contain mx-auto"
                 />
