@@ -8,9 +8,11 @@ services:
     volumes:
       - ./images:/app/images
       - ./logs:/app/logs
+      - ./data:/app/data
     environment:
       - FLASK_ENV=development
       - PYTHONUNBUFFERED=1
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     restart: unless-stopped
 
   closet-frontend:

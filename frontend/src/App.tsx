@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
-import { PhotoIcon, CloudArrowUpIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { PhotoIcon, CheckCircleIcon, ExclamationTriangleIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { ImageUpload } from './components/ImageUpload'
 import { ImageGallery } from './components/ImageGallery'
-import { api, ProcessedFile } from './utils/api'
+import { OutfitsGallery } from './components/OutfitsGallery'
+import { api, ProcessedFile, Outfit } from './utils/api'
 
 function App() {
   const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([])
+  const [outfits, setOutfits] = useState<Outfit[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'clothing' | 'outfits'>('clothing')
 
   const loadProcessedFiles = async () => {
     try {
@@ -19,8 +22,18 @@ function App() {
     }
   }
 
+  const loadOutfits = async () => {
+    try {
+      const response = await api.listOutfits()
+      setOutfits(response.outfits)
+    } catch (err) {
+      setError('Failed to load outfits')
+    }
+  }
+
   useEffect(() => {
     loadProcessedFiles()
+    loadOutfits()
   }, [])
 
   const handleImageProcessed = () => {
@@ -32,6 +45,31 @@ function App() {
   const handleError = (errorMessage: string) => {
     setError(errorMessage)
     setTimeout(() => setError(null), 5000)
+  }
+
+  const handleGenerateOutfit = async (selectedFiles: ProcessedFile[]) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const response = await api.generateOutfit(selectedFiles)
+      
+      if (response.success) {
+        setSuccess('Outfit generated successfully!')
+        // Reload both galleries to show the new outfit
+        loadProcessedFiles()
+        loadOutfits()
+        // Switch to outfits tab to show the new outfit
+        setActiveTab('outfits')
+        setTimeout(() => setSuccess(null), 5000)
+      } else {
+        setError(response.error || 'Failed to generate outfit')
+      }
+    } catch (err) {
+      setError('Failed to generate outfit')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -98,17 +136,61 @@ function App() {
             </div>
           </div>
 
-          {/* Gallery Section */}
-          <div>
+          {/* Tab Navigation */}
+          <div className="mb-6">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('clothing')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'clothing'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <PhotoIcon className="h-5 w-5 inline mr-2" />
+                  Clothing Items ({processedFiles.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('outfits')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'outfits'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <UserGroupIcon className="h-5 w-5 inline mr-2" />
+                  Generated Outfits ({outfits.length})
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'clothing' && (
             <div className="card">
               <div className="px-4 py-5 sm:p-6">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">
                   Processed Images ({processedFiles.length})
                 </h2>
-                <ImageGallery files={processedFiles} />
+                <ImageGallery 
+                  files={processedFiles} 
+                  onGenerateOutfit={handleGenerateOutfit}
+                />
               </div>
             </div>
-          </div>
+          )}
+
+          {activeTab === 'outfits' && (
+            <div className="card">
+              <div className="px-4 py-5 sm:p-6">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">
+                  Generated Outfits ({outfits.length})
+                </h2>
+                <OutfitsGallery outfits={outfits} />
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -1,24 +1,20 @@
 import { useState } from 'react'
-import { EyeIcon, ArrowDownTrayIcon, CalendarIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { EyeIcon, ArrowDownTrayIcon, CalendarIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { ProcessedFile } from '../utils/api'
 
 interface ImageGalleryProps {
   files: ProcessedFile[]
+  onGenerateOutfit?: (selectedFiles: ProcessedFile[]) => void
 }
 
-export function ImageGallery({ files }: ImageGalleryProps) {
+export function ImageGallery({ files, onGenerateOutfit }: ImageGalleryProps) {
   const [selectedImage, setSelectedImage] = useState<ProcessedFile | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
+  const [isSelectMode, setIsSelectMode] = useState(false)
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+  const formatDate = (timestamp: string) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -44,6 +40,28 @@ export function ImageGallery({ files }: ImageGalleryProps) {
     }
   }
 
+  const toggleFileSelection = (filename: string) => {
+    const newSelected = new Set(selectedFiles)
+    if (newSelected.has(filename)) {
+      newSelected.delete(filename)
+    } else {
+      newSelected.add(filename)
+    }
+    setSelectedFiles(newSelected)
+  }
+
+  const handleGenerateOutfit = () => {
+    const selectedFileObjects = files.filter(file => selectedFiles.has(file.filename))
+    if (onGenerateOutfit && selectedFileObjects.length > 0) {
+      onGenerateOutfit(selectedFileObjects)
+    }
+  }
+
+  const exitSelectMode = () => {
+    setIsSelectMode(false)
+    setSelectedFiles(new Set())
+  }
+
   if (files.length === 0) {
     return (
       <div className="text-center py-12">
@@ -58,47 +76,115 @@ export function ImageGallery({ files }: ImageGalleryProps) {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {files.map((file) => (
-          <div key={file.filename} className="card">
-            <div className="aspect-w-16 aspect-h-9 bg-gray-200">
-              <img
-                src={`/api${file.image_url}`}
-                alt={file.filename}
-                className="w-full h-48 object-cover cursor-pointer hover:opacity-75 transition-opacity"
-                onClick={() => setSelectedImage(file)}
-              />
+      {/* Selection Controls */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          {!isSelectMode ? (
+            <button
+              onClick={() => setIsSelectMode(true)}
+              className="btn-secondary"
+            >
+              Select Items
+            </button>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">
+                {selectedFiles.size} item{selectedFiles.size !== 1 ? 's' : ''} selected
+              </span>
+              <button
+                onClick={exitSelectMode}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
             </div>
-            <div className="p-4">
-              <h3 className="text-sm font-medium text-gray-900 truncate">
-                {file.filename}
-              </h3>
-              <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center">
+          )}
+        </div>
+        
+        {isSelectMode && selectedFiles.size > 0 && onGenerateOutfit && (
+          <button
+            onClick={handleGenerateOutfit}
+            className="btn-primary"
+          >
+            Generate Outfit ({selectedFiles.size})
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {files.map((file) => {
+          const isSelected = selectedFiles.has(file.filename)
+          return (
+            <div 
+              key={file.filename} 
+              className={`card relative ${isSelectMode ? 'cursor-pointer' : ''} ${
+                isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              }`}
+              onClick={() => isSelectMode && toggleFileSelection(file.filename)}
+            >
+              {isSelectMode && (
+                <div className="absolute top-2 right-2 z-10">
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                    isSelected 
+                      ? 'bg-blue-500 border-blue-500' 
+                      : 'bg-white border-gray-300'
+                  }`}>
+                    {isSelected && <CheckIcon className="w-4 h-4 text-white" />}
+                  </div>
+                </div>
+              )}
+              
+              <div className="aspect-w-16 aspect-h-9 bg-gray-200">
+                <img
+                  src={`/api${file.image_url}`}
+                  alt={file.filename}
+                  className={`w-full h-48 object-cover transition-opacity ${
+                    isSelectMode ? 'cursor-pointer hover:opacity-75' : 'cursor-pointer hover:opacity-75'
+                  }`}
+                  onClick={(e) => {
+                    if (!isSelectMode) {
+                      e.stopPropagation()
+                      setSelectedImage(file)
+                    }
+                  }}
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="text-sm font-medium text-gray-900 truncate">
+                  {file.filename}
+                </h3>
+                <div className="mt-2 flex items-center text-xs text-gray-500">
                   <CalendarIcon className="h-4 w-4 mr-1" />
                   {formatDate(file.created)}
                 </div>
-                <span>{formatFileSize(file.size)}</span>
-              </div>
-              <div className="mt-3 flex space-x-2">
-                <button
-                  onClick={() => setSelectedImage(file)}
-                  className="flex-1 btn-secondary text-xs"
-                >
-                  <EyeIcon className="h-4 w-4 mr-1" />
-                  View
-                </button>
-                <button
-                  onClick={() => handleDownload(file)}
-                  className="flex-1 btn-primary text-xs"
-                >
-                  <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
-                  Download
-                </button>
+                {!isSelectMode && (
+                  <div className="mt-3 flex space-x-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedImage(file)
+                      }}
+                      className="flex-1 btn-secondary text-xs"
+                    >
+                      <EyeIcon className="h-4 w-4 mr-1" />
+                      View
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDownload(file)
+                      }}
+                      className="flex-1 btn-primary text-xs"
+                    >
+                      <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
+                      Download
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Image Modal */}
@@ -124,12 +210,9 @@ export function ImageGallery({ files }: ImageGalleryProps) {
                   alt={selectedImage.filename}
                   className="max-w-full max-h-96 object-contain mx-auto"
                 />
-                <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
-                  <div className="flex items-center">
-                    <CalendarIcon className="h-4 w-4 mr-1" />
-                    {formatDate(selectedImage.created)}
-                  </div>
-                  <span>{formatFileSize(selectedImage.size)}</span>
+                <div className="mt-4 flex items-center text-sm text-gray-500">
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  {formatDate(selectedImage.created)}
                 </div>
                 <div className="mt-4 flex justify-end">
                   <button

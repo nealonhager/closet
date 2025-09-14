@@ -8,9 +8,11 @@ services:
     volumes:
       - ./images:/app/images
       - ./logs:/app/logs
+      - ./data:/app/data
     environment:
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
@@ -18,14 +20,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    # Uncomment if you need to set Google AI API key
-    # environment:
-    #   - GOOGLE_API_KEY=your_api_key_here
 
   closet-frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      target: development
     ports:
-      - "3001:80"
+      - "3001:3000"
     depends_on:
       - closet-api
     restart: unless-stopped
